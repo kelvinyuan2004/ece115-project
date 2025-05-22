@@ -14,9 +14,17 @@
  * @param[in] digit1 Digit to display for LED 1
  * @param[in] digit2 Digit to display for LED 2
  */
-void displayDigits(const int dsPin, const int shcpPin, const int stcpPin,
-                   const int npnPin1, const int npnPin2,
-                   const int digit1, const int digit2);
+void displayDigits
+(
+	const int dsPin,
+	const int shcpPin,
+	const int stcpPin,
+	const int npnPin1,
+	const int npnPin2,
+	const int digit1,
+	const int digit2
+);
+
 /**
  * Handle LED displaying
  *
@@ -26,6 +34,12 @@ void displayDigits(const int dsPin, const int shcpPin, const int stcpPin,
  * @param[in] npnPin Toggle LED transistor pin
  * @param[in] digit Digit to display for LED
  */
-void enableLED(const int dsPin, const int shcpPin, const int stcpPin,
-               const int npnPin, const int digit);
+void enableLED
+(
+	const int dsPin,
+	const int shcpPin,
+	const int stcpPin,
+	const int npnPin,
+	const int digit
+);
 #endif

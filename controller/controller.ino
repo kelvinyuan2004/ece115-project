@@ -1,85 +1,123 @@
 #include "pinDefinitions.h"
 #include "display.h"
+#include "sensors.h"
 
-int score;
-bool scoreUpdated;
+////////////////////////////
+// timing parameters (ms) //
+const int STARTUP_DELAY    = 3000;
+const int DISPLAY_INTERVAL = 5;
 
-unsigned long startTime;
-unsigned long lastEdgeTime;
-unsigned long lastPoll;
-unsigned long lastDisplayUpdate;
+// game
+const int MAX_SCORE = 100;
 
-const int startupDelay = 1000; // startup delay for polling system
-const int pollRate = 50; // polling rate for visual sensor (ms)
-const int edgeBuffer = 20; // buffer for the edge updates
+enum GameState { RESET, PLAY, GAME_OVER };
+
+struct GameContext
+{
+  GameState state;
+  unsigned long lastDisplayTime;
+  int score;
+  int lives;
+} game;
+
+// forward
+void enterReset();
+void updateDisplayIfNeeded();
+void doPlay();
+void doGameOver();
 
 void setup()
 {
-	// sensor
-	pinMode(VIS_IN_PIN, INPUT);   // visual sensor in
-	attachInterrupt(digitalPinToInterrupt(VIS_IN_PIN), edgeDetected, FALLING);
-	
-	pinMode(VIS_OUT_PIN, OUTPUT); // visual sensor out
-	tone(VIS_OUT_PIN, 1000);
+  Serial.begin(9600);
+  Serial.println("Begin Setup");
+  tone(PWM_PIN, 1000);
 
-	// display
-	pinMode(DS_PIN, OUTPUT);      // SER
-	pinMode(SHCP_PIN, OUTPUT);    // SRCLK
-	pinMode(STCP_PIN, OUTPUT);    // RCLK
-	pinMode(NPN_PIN1, OUTPUT);    // NPN1 Control
-	pinMode(NPN_PIN2, OUTPUT);    // NPN2 Control
-
-	// setup initial states, variables/, misc.
-	score = 0;
-	scoreUpdated = 0;
-
-	startTime = millis();
-	lastEdgeTime = millis();
-	lastPoll = millis();
-	Serial.begin(9600);
+  initSensors();
+  game.state = RESET;
+  enterReset();
 }
 
 void loop()
 {
-	visualSensor();
+  switch (game.state)
+  {
+    case RESET:
+      game.state = PLAY;
+      break;
+
+    case PLAY:
+      doPlay();
+      break;
+
+    case GAME_OVER:
+      doGameOver();
+      break;
+  }
 }
 
-void visualSensor()
+void enterReset()
 {
-	unsigned long currentTime = millis();
+  Serial.println(F(">> Restarting..."));
+  delay(STARTUP_DELAY);
+  reset();
 
-	if (currentTime - startTime < startupDelay) return;
-	
-	if (currentTime - lastDisplayUpdate >= 5)
+  game.score = 0;
+  game.lives = 3;
+  game.lastDisplayTime  = millis();
+  Serial.println(F(">> RESET: Game restarted"));
+}
+
+void updateDisplayIfNeeded()
+{
+  unsigned long now = millis();
+  if (now - game.lastDisplayTime >= DISPLAY_INTERVAL)
+  {
+    displayDigits
+    (
+      DS_PIN, SHCP_PIN, STCP_PIN,
+      NPN_PIN1, NPN_PIN2,
+      game.score / 10,
+      game.score % 10
+    );
+    game.lastDisplayTime = now;
+  }
+}
+
+void doPlay() {
+  updateDisplayIfNeeded();
+
+  SensorReadings s = poll();
+  if (s.irMissed)
 	{
-		displayDigits(DS_PIN, SHCP_PIN, STCP_PIN, NPN_PIN1, NPN_PIN2, score/10, score%10);
-		lastDisplayUpdate = currentTime;
-	}
+    game.lives--;
+    Serial.print(F("IR miss, new lives = "));
+    Serial.println(game.lives);
+  }
 
-	if (currentTime - lastPoll >= pollRate)
+  if (s.triggeredTCRT)
 	{
-    	noInterrupts();
-    	unsigned long timeSinceLastEdge = currentTime - lastEdgeTime;
-    	interrupts();
+    game.score = (game.score + 1) % MAX_SCORE;
+    Serial.print(F("TCRT hit, new score = "));
+    Serial.println(game.score);
+  }
 
-		if(timeSinceLastEdge > edgeBuffer)
-			if (scoreUpdated)
-				scoreUpdated = 0;
-			else
-				updateScore();
+  if (s.piezoHit)
+	{
+    game.score = (game.score + 2) % MAX_SCORE;
+    Serial.print(F("Piezo hit, new score = "));
+    Serial.println(game.score);
+  }
 
-		lastPoll = currentTime;
-	}
+  if (game.lives <= 0)
+	{
+    Serial.println(F(">> PLAY -> GAME_OVER"));
+    game.state = GAME_OVER;
+  }
 }
 
-void edgeDetected()
+void doGameOver()
 {
-  lastEdgeTime = millis();
-}
-
-void updateScore()
-{
-	score += 1;
-	if (score > 99) score = 0;				
-	Serial.println("Score updated: " + score);
+  Serial.println(F(">> GAME OVER"));
+  game.state = RESET;
+  enterReset();
 }

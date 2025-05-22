@@ -1,6 +1,7 @@
 #include "display.h"
 
-const byte digitCodes[10] = {
+const byte digitCodes[10] =
+{
     B01111110,  // 0: a b c d e f
     B00110000,  // 1:   b c
     B01101101,  // 2: a b   d e   g
@@ -16,9 +17,16 @@ const byte digitCodes[10] = {
 /**
  * Handle displaying digits on the board for both LED
  */
-void displayDigits(const int dsPin, const int shcpPin, const int stcpPin,
-                   const int npnPin1, const int npnPin2,
-                   const int digit1, const int digit2)
+void displayDigits
+(
+	const int dsPin,
+	const int shcpPin,
+	const int stcpPin,
+	const int npnPin1,
+	const int npnPin2,
+	const int digit1,
+	const int digit2
+)
 {
   enableLED(dsPin, shcpPin, stcpPin, npnPin1, digit1);
   enableLED(dsPin, shcpPin, stcpPin, npnPin2, digit2);
@@ -27,8 +35,14 @@ void displayDigits(const int dsPin, const int shcpPin, const int stcpPin,
 /**
  * Handle LED displaying
  */
-void enableLED(const int dsPin, const int shcpPin, const int stcpPin,
-               const int npnPin, const int digit)
+void enableLED
+(
+	const int dsPin,
+	const int shcpPin,
+	const int stcpPin,
+    const int npnPin,
+	const int digit
+)
 {
   digitalWrite(npnPin, HIGH);
 
